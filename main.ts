@@ -12,7 +12,7 @@
 // and Gustara approves it; the gate refuses a placeholder, so replace it
 // with the real post address before submitting.
 
-import { copyFileSync, mkdirSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const botDir = process.env.MAKEFUN_BOT_DIR ?? "/bot";
@@ -23,6 +23,14 @@ function main(): void {
   const source = join(botDir, "POST.json");
   const target = join(outputDir, "POST.json");
   try {
+    const raw = readFileSync(source, "utf8");
+    const parsed: unknown = JSON.parse(raw);
+    const url = (parsed as { url?: unknown }).url;
+    if (typeof url !== "string" || !url.startsWith("https://x.com/")) {
+      throw new Error(
+        `Invalid post URL in POST.json: expected a string starting with "https://x.com/", got ${JSON.stringify(url)}`,
+      );
+    }
     copyFileSync(source, target);
   } catch (error) {
     console.error(`Could not copy POST.json from ${botDir}: ${(error as Error).message}`);
